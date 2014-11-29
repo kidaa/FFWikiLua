@@ -23,11 +23,16 @@ function cell(txt, style, class, colspan, rowspan, th)
   }
 end
 
+--The following functions return useful types of cells.
+
+--Returns a cell with th = true. Useful shorthand.
+function thcell(txt, style, class, colspan, rowspan)
+  return cell(txt, style, class, colspan, rowspan, true)
+end
+
 --Returns a row with a single text-aligned cell.
 function allrow(txt, class)
-  return {
-    cell(txt, "text-align:center;", class or "a", 100, 1, true)
-  }
+  return {cell(txt, "text-align:center;", class or "a", 100, 1, true)}
 end
 
 --Returns a row with a single cell with an image inside.
@@ -59,7 +64,7 @@ function tabtable(f, versions, func)
   local ret = {}
   for k, v in pairs(versions) do
     ret[k] = func(f, v)
-    ret[k].title = k
+    ret[k].title = f[k .. " Tab"] or k
   end
   return ret
 end
@@ -67,57 +72,6 @@ end
 --Helper function that creates a stat cell.
 function statcell(stat, version, dver)
   return cell(f[version .. " " .. stat] or statcell(stat, dver) or "{{{" .. version .. " " .. stat .. "}}}")
-end
-
---Takes a frame and converts it into a table representative of HTML.
-function parse(frame)
-  local f = ffwiki.emptystring(frame)
-  local info = {}
- 
-  info.classes = "infobox " .. (f.ccode or "series")
- 
-  if f.tabs then
-    for k, v in pairs(tabs) do
-      info.tabs[i] = parse(v)
-      info.tabs.header = f.header
-    end
- 
-  else
-    local i = 1
-    info.rows = {}
-	
-    if f["above"] then --above table
-      local css = "text-align:center;"
-      local cells = {}
-	  cells[1] = cell(f["above"], css, "a name", "2", "1", true)
-	  info.rows[i] = cells
-	  i = i + 1
-    end
-	
-    while true do --Iterate over the rows (letters)
-      local cells = {}
-      local j = 1
-      if not (f["label" .. lseq[i] .. "1"] or f["cell" .. lseq[i] .. "1"]) then break end
-      while true do --Iterate over the cells in each row (numbers)
-        local o = lseq[i] .. j
-        if not (f["label" .. o] or f["cell" .. o]) then break end
-        cells[j] = cell((f["label" .. o] or f["cell" .. o]), f["style" .. o], f["class" .. o], f["colspan" .. o], f["rowspan" .. o], f["label" .. o])
-        j = j + 1
-      end
-      info.rows[i] = cells
-      i = i + 1
-    end
-	
-    if f["below"] then --below table
-      local css = "text-align:center;"
-      local cells = {}
-	  cells[1] = cell(f["below"], css, "a footer", "2", "1", true)
-	  info.rows[i] = cells
-	  i = i + 1
-    end
-  end
- 
-  return info
 end
 
 --These functions are different for each game and are used by enemy() to calculate stats
@@ -156,9 +110,9 @@ function enemies.FFI(f, version)
       rows = {
         allrow("Statistics"),
         {
-          cell("HP", "", "", 2, 1, true),
-          cell("Attack", "width:33%", "", 2, 1, true),
-          cell("Intelligence", "width:33%", "", 2, 1, true)
+          thcell("HP", "", "", 2, 1),
+          thcell("Attack", "width:33%", "", 2, 1),
+          thcell("Intelligence", "width:33%", "", 2, 1)
         },
         {
           statcell("HP", version),
@@ -166,17 +120,17 @@ function enemies.FFI(f, version)
           statcell("Intelligence", version)
         },
         {
-          cell("Defense", "width:50%", "", 3, 1, true),
-          cell("Magic Defense", "width:50%", "", 3, 1, true)
+          thcell("Defense", "width:50%", "", 3, 1),
+          thcell("Magic Defense", "width:50%", "", 3, 1)
         },
         {
           statcell("Defense", version),
           statcell("Magic Defense", version)
         },
         {
-          cell("Agility", "", "", 2, 1, true),
-          cell("Accuracy", "", "", 2, 1, true),
-          cell("Evasion", "", "", 2, 1, true)
+          thcell("Agility", "", "", 2, 1),
+          thcell("Accuracy", "", "", 2, 1),
+          thcell("Evasion", "", "", 2, 1)
         },
         {
           statcell("Agility", version),
@@ -192,10 +146,10 @@ function enemies.FFI(f, version)
       rows = {
         allrow("Elemental Affinities"),
         {
-          cell("[[Fire (Element)|Fire]]", "", "", 1, 1, true),
-          cell("[[Lightning (Element)|Lightning]]", "", "", 1, 1, true),
-          cell("[[Ice (Element)|Ice]]", "", "", 1, 1, true),
-          cell("[[Element (Term)|Dia]]", "", "", 1, 1, true),
+          thcell("[[Fire (Element)|Fire]]", "", "", 1, 1),
+          thcell("[[Lightning (Element)|Lightning]]", "", "", 1, 1),
+          thcell("[[Ice (Element)|Ice]]", "", "", 1, 1),
+          thcell("[[Element (Term)|Dia]]", "", "", 1, 1),
         },
         {
           statcell("Fire", version),
@@ -208,36 +162,21 @@ function enemies.FFI(f, version)
     affinities = {render(affinities)}
 
     local location = { --Misc. stats
-      cell("Location", "b", "width:35%", "", 1, 1, true),
+      thcell("Location", "b", "width:35%", "", 1, 1),
       statcell("Location", version)
     }
     local items = {
-      cell("Item Dropped", "b", "width:35%", "", 1, 1, true),
+      thcell("Item Dropped", "b", "width:35%", "", 1, 1),
       statcell("Item Dropped", version)
     }
     local abilities = {
-      cell("[[List of Final Fantasy Enemy Abilities|Abilities]]", "b", "width:35%", "", 1, 1, true),
+      thcell("[[List of Final Fantasy Enemy Abilities|Abilities]]", "b", "width:35%", "", 1, 1),
       statcell("Abilities", version)
     }
     local resistant = {
-      cell("Resistant to", "b", "width:35%", "", 1, 1, true),
+      thcell("Resistant to", "b", "width:35%", "", 1, 1),
       statcell("Resistance", version)
     }
-    
-    if version == "NES" or version == "PS" then --Per version exceptions
-      stats.rows[2][2].style = "width:50%"
-      table.remove(stats.rows[2], 3)
-      table.remove(stats.rows[3], 3)
-      table.remove(stats.rows[6], 1)
-      table.remove(stats.rows[7], 1)
-      affinities.rows[2][2].txt = "[[Lightning (Element)|Bolt]]"
-      affinities.rows[3][2].txt = "Bolt"
-      items = nil
-    end
-    if version == "PS" then
-      table.remove(stats.rows, 6)
-      table.remove(stats.rows, 7)
-    end
     
     local parsef = {
       allrow(f[version],ename), --Name
@@ -252,11 +191,21 @@ function enemies.FFI(f, version)
       resistant
     }
     
-    if version == "NES" then --More exceptions
+    if version == "NES" or version == "PS" then --Per version exceptions
+      table.remove(parsef, 8) --Items dropped
+      parsef.stats.rows[2][2].style = "width:50%" --Intelligence and Agility
+      table.remove(parsef.stats.rows[2], 3)
+      table.remove(parsef.stats.rows[3], 3)
+      table.remove(parsef.stats.rows[6], 1)
+      table.remove(parsef.stats.rows[7], 1)
+      parsef.affinities.rows[2][2].txt = "[[Lightning (Element)|Bolt]]" --Naming
+      parsef.affinities.rows[3][2].txt = "Bolt"
+    end
+    if version == "NES" then
       table.remove(parsef, 4) --Bestiary
-      table.remove(parsef, 7) --Items dropped
     elseif version == "PS" then
-      table.remove(parsef, 8) -- Items dropped
+      table.remove(parsef.stats.rows, 6) --Accuracy and Evasion
+      table.remove(parsef.stats.rows, 7)
     end
     
     return parsef
@@ -350,7 +299,7 @@ function Infobox.enemy(frame)
     classes = "infobox enemy " .. (f.ccode or "series"),
 	tabs = {
       header = allrow("[[List of " .. codename(f.ccode) .. " Characters|<span class=\"a\">'''''" .. codename(f.ccode) .. "'' Character'''</span>]]", "a header"),
-	}
+    }
   }
   
   local enemyfunc = enemies[ccode](f)
@@ -371,10 +320,10 @@ function Infobox.release(frame)
   local parsef = {
     classes = "infobox release series",
     rows = {  --Title, image, and japanese rows
-	  allrow(f.title, "a name"),
-	  image(f.image, f.size, f.defsize, f.imglabel or f.title),
-	  allrow(jp)
-	}
+      allrow(f.title, "a name"),
+      image(f.image, f.size, f.defsize, f.imglabel or f.title),
+      allrow(jp)
+    }
   }
   
   --Fields
@@ -406,7 +355,53 @@ end
 --preprocessing defeats the purpose of Lua, i.e. to do all calculations outside of wikitext.
 function Infobox.prerender(frame)
   if frame:getParent().args.cell1A or frame:getParent().args.label1A then frame = frame:getParent() end
-  return render(parse(frame.args))
-end
+  f = ffwiki.emptystring(frame.args)
+  local info = {}
  
+  info.classes = "infobox " .. (f.ccode or "series")
+ 
+  if f.tabs then
+    for k, v in pairs(tabs) do
+      info.tabs[i] = parse(v)
+      info.tabs.header = f.header
+    end
+ 
+  else
+    local i = 1
+    info.rows = {}
+	
+    if f["above"] then --above table
+      local css = "text-align:center;"
+      local cells = {}
+	  cells[1] = cell(f["above"], css, "a name", "2", "1", true)
+	  info.rows[i] = cells
+	  i = i + 1
+    end
+	
+    while true do --Iterate over the rows (letters)
+      local cells = {}
+      local j = 1
+      if not (f["label" .. lseq[i] .. "1"] or f["cell" .. lseq[i] .. "1"]) then break end
+      while true do --Iterate over the cells in each row (numbers)
+        local o = lseq[i] .. j
+        if not (f["label" .. o] or f["cell" .. o]) then break end
+        cells[j] = cell((f["label" .. o] or f["cell" .. o]), f["style" .. o], f["class" .. o], f["colspan" .. o], f["rowspan" .. o], f["label" .. o])
+        j = j + 1
+      end
+      info.rows[i] = cells
+      i = i + 1
+    end
+	
+    if f["below"] then --below table
+      local css = "text-align:center;"
+      local cells = {}
+	  cells[1] = cell(f["below"], css, "a footer", "2", "1", true)
+	  info.rows[i] = cells
+	  i = i + 1
+    end
+  end
+
+  return render(info)
+end
+
 return Infobox
