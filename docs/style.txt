@@ -1,0 +1,139 @@
+This page will document the unofficial coding style and helpful hints for the wiki's Lua modules (and can sometimes be applied to JavaScript as well). I (and the other designers) won't ''enforce'' this page per se, as one would enforce the [[Project:Manual of Style|Manual of Style]] or similar policies; however, it definitely makes your code easier to read and understand by other users to at least consider these guidelines. Maybe you think you're the next Alan Turing, but the rest of us mortals would like to be able to comprehend your genius.
+
+==Why Lua?==
+That's a good question, and one that has been raised a few times since the installation of Scribunto. First of all, consider this element from the first line of the old [[Template:Talk|]] template, before it was converted to Lua:
+
+<source lang="xml">
+<div style="width:64px;max-width:69px;float:left">{{{image-section|{{{choose|{{#if:{{{image|}}}|{{#ifeq:{{#sub:{{{image}}}|0|7}}|http://|{{{image}}}|[[File:{{{image}}}{{!}}{{#if:{{#explode:{{#replace:{{{imagesize|60}}}|px}}px|x|1}}|{{#replace:{{#replace:{{#replace:{{{imagesize|60}}}|px}}px|{{#explode:{{#replace:{{{imagesize|60}}}|px}}px|x|1}}|}}|xx|x{{#ifexpr:150<{{#replace:{{#explode:{{{imagesize|30x120px}}}|x|1}}|p}}|150px|{{#replace:{{#explode:{{{imagesize|30x120px}}}|x|1}}|p}}px}}}}|{{#replace:{{{imagesize|60}}}|px}}x150px}}]]}}}}}}}}}}</div>
+</source>
+
+Your first reaction was probably "ummmmmmmm.... wtf???" If you have experience with wikitext, and how the Talk template functions, you might be able to figure out what it does. But now consider the equivalent code [[Module:Talk]]:
+
+<source lang="lua">
+  --image section
+  local imgsectionbool = f["image-section"] or f["image"]
+  local imgsection = container:tag("div")
+  imgsection:addClass("image-section")
+  if imgsectionbool then
+    if f["image-section"] then imgsection:wikitext(f["image-section"])
+    elseif string.find(f["image"], "http://") then imgsection:wikitext(f["image"])
+    else --Local image, must calc image size
+      local imgsize, height
+      if f["imagesize"] then
+        tmp = string.split(f["imagesize"], "px")
+        imgsize = tmp[1]
+        if string.find(imgsize, "x") then
+           height = string.sub(imgsize, 4, 7)
+           if tonumber(height) then
+              if tonumber(height) > 150 then height = 150 end
+           end
+           imgsize = "x" .. height
+        elseif tonumber(imgsize) > 60 then imgsize = "60"
+        end
+        imgsection:wikitext("[[File:" .. f["image"] .. "|" .. imgsize .. "px]]")
+      else
+        imgsection:wikitext("[[File:" .. f["image"] .. "|60px]]")
+      end
+    end
+  end
+  if f["notriangle"] then imgsectionbool = false end
+</source>
+
+This is also eye-glazing at first glance. However, you can intuit at least some of this craziness without knowledge of Lua:
+* It has something to do with the image section.
+* If we have a parameter called image-section then we will just use that.
+* A lot of it has to do with calculating image size.
+* If all else fails, it falls back on a 60px image.
+* If there's a parameter called "notriangle" then a variable, caused by the prescence of an image section, is reset.
+
+So already you can see one advantage: clarity, which both helps teaching people the language and also facilitates editing to add functionality. In fact, the last line added support for "notriangle", which did not exist before Lua.
+
+Lua also adds speed. Of course, this only happens if code is well-written. Unnecessary loops, for example, or giant tables that get imported over and over, can easily ruin this. But for comparison, [[User talk:Crazyswordsman|]] archives used break the wiki's template limit. However, the page now loads in under 2 seconds.
+
+Efficiency is also a factor. Again using the Talk module as an example, the following line or a variant appeared 36 times in the old Talk template:
+
+<source lang="xml">
+|style="{{#if:{{{gradient|}}}|background-color:{{{color|white}}};background:linear-gradient({{{color|white}}},{{{gradient|white}}})|background:{{{color|white}}}}};border-left:1px solid {{{border|gray}}}"|
+</source>
+
+Because of functions, we can now write the following code once:
+
+<source lang="lua">
+function border(side, width, color)
+  if not color then
+    ccolor = "transparent"
+  elseif tonumber(color) then
+    if color == 1 then ccolor = f["border"]
+    elseif color == 2 then ccolor = f["border2"]
+    elseif color == 3 then ccolor = f["border3"]
+    elseif color == 4 then ccolor = f["color"]
+    elseif color == 5 then ccolor = f["color2"]
+    elseif color == 6 then ccolor = f["color3"]
+    else ccolor = "transparent"
+    end  
+  else ccolor = color
+  end
+  return string.format(";border-%s:%spx solid %s;", side, tostring(width), ccolor)
+end
+ 
+function dblborder(side1, width1, color1, side2, width2, color2)
+  return border(side1, width1, color1) .. border(side2, width2 or width1, color2 or 0)
+end
+</source>
+
+and the following code (or a variant) every time the function is needed:
+
+<source lang="lua">
+dblborder(bot, 5, 1, left)
+</source>
+
+==Spacing and Indentation==
+Indents are two spaces. While a tab is often used as an indent in other languages, on the wiki we have to write inside Wikia's text editor, which closes out if the writer presses the tab key. The main argument for using tabs is that it increases readability after hours of looking at code. However if you can't distinguish between the blocks in
+
+<source lang="lua">
+function string.lettersequence(number)
+  if not number then
+    local obj = {_lower = false}
+    obj.lower = function(self, bool)
+      if bool and bool==false then self._lower = false
+      else self._lower = true end
+      return self
+    end
+    obj.__index = function(self, key)
+      if rawget(obj, key) then return rawget(obj, key) end
+      if type(key)=="number" then
+        local x = string.lettersequence(key)
+        if self._lower then return x:lower() end
+        return x
+      else return string.lettersequencenumber(key)
+      end
+    end
+    setmetatable(obj, obj)
+    return obj
+  end
+  -- ...
+end
+</source>
+
+then either you've been staring at your monitor for too long and need to get out more, or your vision is poor. If that's the case, I remind you that browsers have "zoom" functions for a reason. (Firefox and Chrome both allow you to zoom in with Ctrl + + and zoom out with Ctrl + - ).
+
+As a general rule, no lines of code should run anywhere near the end of the text editor and text wrap to the next line. If that happens, odds are either you're drowning in ternary conditionals, in which case your code is bad and you should feel bad (and rewrite it), or you have absurdly long strings, which can be easily broken using <nowiki>[[ ]]</nowiki> notation:
+
+<source lang="lua">
+return [[This is a multi-line string.
+Because mediawiki ignores single line breaks, adding them to your code will not affect the resulting HTML.
+
+However, passing double line breaks to an #invoke or to mw.html:wikitext() will create a new paragraph.]]
+</source>
+
+Lua semicolons facilitate writing multiple lines of code in one line. This is discouraged because it complicates your code, so avoid it. However, if a then/end or do/end block consists of only one line of code, it's acceptable to include it on the same line with the conditional or iterator at the start of the block.
+
+Always include double spaces after the end of a function.
+
+==Modules and Functions==
+
+==Variables: Naming and Scope==
+
+==Tables as Data Structures==
+
+==Comments, Documentation, and Testing==
